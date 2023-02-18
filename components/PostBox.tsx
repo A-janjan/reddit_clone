@@ -3,6 +3,10 @@ import React, { useState } from 'react'
 import Avatar from './Avatar'
 import { CameraIcon, LinkIcon } from '@heroicons/react/24/outline'
 import { useForm } from 'react-hook-form'
+import { useMutation } from '@apollo/client'
+import { ADD_POST, ADD_SUBREDDIT } from '@/graphql/mutations'
+import client from '@/apollo-client'
+import { SUBREDDDIT_BY_TPOIC } from '@/graphql/queries'
 
 
 type FormData = {
@@ -16,6 +20,8 @@ type FormData = {
 function PostBox() {
 
   const { data: session } = useSession()
+  const [addPost] = useMutation(ADD_POST)
+  const [addSubreddit] = useMutation(ADD_SUBREDDIT)
   const [imageBoxOpen, setImageBoxOpen] = useState<boolean>(false)
   const {
     register,
@@ -27,6 +33,64 @@ function PostBox() {
 
   const onSubmit = handleSubmit(async (formData) => {
     console.log(formData)
+    try {
+      // ... qeury for subreddit topic
+      const { data: { subredditByTopic } } = await client.query({
+        query: SUBREDDDIT_BY_TPOIC,
+        variables: {
+          topic: formData.subreddit
+        }
+      })
+      const subredditExists = subredditByTopic>0;
+      if(!subredditExists){
+        // create subreddit...
+        console.log('Subreddit is new! => creating a new subreddit!')
+        const { data: { insertSubreddit: newSubreddit } } = await addSubreddit ({
+          variables: {
+            topic: formData.subreddit
+          }
+        })
+        console.log("creating post...", formData)
+        const image = formData.postImage || ''
+
+        const {
+          data: { insertPost: newPost }
+        } = await addPost({
+          variables: {
+            body: formData.postBody,
+            image: image,
+            subreddit_id: newSubreddit.id,
+            title: formData.postTitle,
+            username: session?.user?.name,
+          }
+        })
+        console.log('new post added: ' , newPost)
+
+      } else {
+        // using existing subreddit...
+        console.log('Using existing subreddit!')
+        console.log(subredditByTopic)
+        
+        const image = formData.postImage || ''
+        const {
+          data: { insertPost: newPost }
+        } = await addPost({
+          variables: {
+            body: formData.postBody,
+            image: image,
+            subreddit_id: subredditByTopic[0].id,
+            title: formData.postTitle,
+            username: session?.user?.name,
+          }
+        })
+        console.log('new post added: ' , newPost)
+      }
+      // after post has been added
+      setValue('postBody', '')
+      setValue('postImage', '')
+      setValue('postTitle', '')
+      setValue('subreddit', '')
+    } catch (error) {}
   })
 
   return (

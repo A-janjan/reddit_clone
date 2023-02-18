@@ -1,14 +1,12 @@
 import { gql } from "@apollo/client";
 
-export const ADD_POST = gql`
-    mutation MyMutation(
-        $body: String!
-        $id: String!
-        $image: String!
-        $subreddit_id: ID!
-        $title: String!
-        $username: String!
-    ) {
-        
+ 
+export const SUBREDDDIT_BY_TPOIC = gql`
+    query MyQuery($topic: String!){
+        SubredditListByTopic(topic: $topic){
+            id
+            topic
+            created_at
+        }
     }
 `
