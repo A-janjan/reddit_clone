@@ -7,6 +7,7 @@ import { useMutation } from '@apollo/client'
 import { ADD_POST, ADD_SUBREDDIT } from '@/graphql/mutations'
 import client from '@/apollo-client'
 import { SUBREDDDIT_BY_TPOIC } from '@/graphql/queries'
+import { toast } from 'react-hot-toast'
 
 
 type FormData = {
@@ -32,7 +33,11 @@ function PostBox() {
   } = useForm<FormData>()
 
   const onSubmit = handleSubmit(async (formData) => {
+    
     console.log(formData)
+    
+    const notification = toast.loading('creating new post...')
+
     try {
       // ... qeury for subreddit topic
       const { data: { subredditByTopic } } = await client.query({
@@ -90,7 +95,15 @@ function PostBox() {
       setValue('postImage', '')
       setValue('postTitle', '')
       setValue('subreddit', '')
-    } catch (error) {}
+
+      toast.success('New Post Created!', {
+        id: notification
+      })
+    } catch (error) {
+      toast.error('whooops something went wrong!', {
+        id: notification
+      })
+    }
   })
 
   return (
